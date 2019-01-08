@@ -121,19 +121,23 @@ func (wget *Request) Run(url, method string, params interface{}, header map[stri
 			return http.StatusBadRequest, nil, nil, err
 		}
 	} else {
+		setForm := true
 		switch method {
 		case http.MethodGet, http.MethodHead:
 			len := len(url) + 1 + len(param)
-			if len < length_limit {
-				break
+			if len >= length_limit {
+				method = http.MethodPost
+			} else {
+				setForm = false
 			}
-			method = http.MethodPost
 			fallthrough
 		case http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch:
 			if req, err = http.NewRequest(method, url, strings.NewReader(param)); err != nil {
 				return http.StatusBadRequest, nil, nil, err
 			}
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			if setForm {
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			}
 		default:
 			return http.StatusMethodNotAllowed, nil, nil, fmt.Errorf("method %s not supported", method)
 		}
