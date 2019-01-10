@@ -148,8 +148,10 @@ func (wget *Request) Run(url, method string, params interface{}, header map[stri
 		}
 	}
 
-	var resp *http.Response
-	resp, err = wget.client.Do(req)
+	resp, err := wget.client.Do(req)
+	if err != nil {
+		return http.StatusInternalServerError, nil, nil, err
+	}
 	defer resp.Body.Close()
 
 	if body, err := ioutil.ReadAll(resp.Body); err != nil {
