@@ -29,6 +29,10 @@ func main() {
 	status, content, resp, err := wget.Wget("http://yourname.com/path/to/url", "post", params, headers)
 	// post body as a JSON 
 	status, content, resp, err := wget.PostJson("http://yourname.com/path/to/url", "", params, headers)
+	// post body as a JSON, even the method is GET
+	status, content, resp, err := wget.PostJson("http://yourname.com/path/to/url", "GET", params, headers)
+	// request method is GET, request params as a FORM body
+	status, content, resp, err := wget.GetUsingBodyParams("http://yourname.com/path/to/url", params, headers)
 	*/
 	if err != nil {
 		fmt.Printf("%v\n", err)

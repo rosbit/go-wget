@@ -54,8 +54,12 @@ func PostJson(url, method string, params interface{}, header map[string]string) 
 			header = make(map[string]string, 1)
 		}
 		header["Content-Type"] = "application/json"
-		return Wget(url, method, j, header)
+		return NewRequest(0).run(url, method, j, header, true)
 	}
+}
+
+func GetUsingBodyParams(url string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
+	return NewRequest(0).run(url, "GET", params, header, true)
 }
 
 func GetStatus(resp *http.Response) (int, string) {
@@ -105,6 +109,10 @@ func ModTime(rawurl string) (time.Time, error) {
 }
 
 func (wget *Request) Run(url, method string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
+	return wget.run(url, method, params, header, false)
+}
+
+func (wget *Request) run(url, method string, params interface{}, header map[string]string, withGetBody bool) (int, []byte, *http.Response, error) {
 	var req *http.Request
 	param, err := buildHttpParams(params)
 	if err != nil {
@@ -125,9 +133,9 @@ func (wget *Request) Run(url, method string, params interface{}, header map[stri
 		switch method {
 		case http.MethodGet, http.MethodHead:
 			len := len(url) + 1 + len(param)
-			if len >= length_limit {
-				method = http.MethodPost
-			} else {
+			if !withGetBody && len < length_limit {
+				url = fmt.Sprintf("%s?%s", url, param)
+				param = ""
 				setForm = false
 			}
 			fallthrough
