@@ -14,6 +14,7 @@ import (
 	"time"
 	"encoding/json"
 	"os"
+	"crypto/tls"
 )
 
 type Request struct {
@@ -34,8 +35,28 @@ func NewRequest(connectTimeout int) *Request {
 	return &Request{&http.Client{Timeout: time.Duration(connectTimeout)*time.Second}}
 }
 
+func NewHttpsRequest(connectTimeout int) *Request {
+	if connectTimeout <= 0 {
+		connectTimeout = connect_timeout
+	}
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	return &Request{&http.Client{Transport: transport, Timeout: time.Duration(connectTimeout)*time.Second}}
+}
+
+func newRequest(url string, connectTimeout int) *Request {
+	if strings.Index(url, "https://") == 0 {
+		return NewHttpsRequest(connectTimeout)
+	} else {
+		return NewRequest(connectTimeout)
+	}
+}
+
 func Wget(url, method string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
-	return NewRequest(0).Run(url, method, params, header)
+	return newRequest(url, 0).Run(url, method, params, header)
 }
 
 func PostJson(url, method string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
@@ -54,12 +75,12 @@ func PostJson(url, method string, params interface{}, header map[string]string) 
 			header = make(map[string]string, 1)
 		}
 		header["Content-Type"] = "application/json"
-		return NewRequest(0).run(url, method, j, header, true)
+		return newRequest(url, 0).run(url, method, j, header, true)
 	}
 }
 
 func GetUsingBodyParams(url string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
-	return NewRequest(0).run(url, "GET", params, header, true)
+	return newRequest(url, 0).run(url, "GET", params, header, true)
 }
 
 func GetStatus(resp *http.Response) (int, string) {
@@ -94,7 +115,7 @@ func isHttpUrl(rawurl string) bool {
 
 func ModTime(rawurl string) (time.Time, error) {
 	if isHttpUrl(rawurl) {
-		_, _, resp, err := NewRequest(0).Run(rawurl, http.MethodHead, nil, nil)
+		_, _, resp, err := newRequest(rawurl, 0).Run(rawurl, http.MethodHead, nil, nil)
 		if err != nil {
 			return time.Time{}, err
 		}
