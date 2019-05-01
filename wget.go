@@ -55,32 +55,19 @@ func newRequest(url string, connectTimeout int) *Request {
 	}
 }
 
-func Wget(url, method string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
-	return newRequest(url, 0).Run(url, method, params, header)
+func Wget(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
+	status, content, resp, err = newRequest(url, 0).Run(url, method, params, header)
+	return
 }
 
-func PostJson(url, method string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
-	if method == "" {
-		method = http.MethodPost
-	}
-
-	if params == nil {
-		return http.StatusBadRequest, nil, nil, fmt.Errorf("no params")
-	}
-
-	if j, err := json.Marshal(params); err != nil {
-		return http.StatusBadRequest, nil, nil, err
-	} else {
-		if header == nil {
-			header = make(map[string]string, 1)
-		}
-		header["Content-Type"] = "application/json"
-		return newRequest(url, 0).run(url, method, j, header, true)
-	}
+func PostJson(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
+	status, content, resp, err = newRequest(url, 0).PostJson(url, method, params, header)
+	return
 }
 
-func GetUsingBodyParams(url string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
-	return newRequest(url, 0).run(url, "GET", params, header, true)
+func GetUsingBodyParams(url string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
+	status, content, resp, err = newRequest(url, 0).GetUsingBodyParams(url, params, header)
+	return
 }
 
 func GetStatus(resp *http.Response) (int, string) {
@@ -129,8 +116,37 @@ func ModTime(rawurl string) (time.Time, error) {
 	}
 }
 
-func (wget *Request) Run(url, method string, params interface{}, header map[string]string) (int, []byte, *http.Response, error) {
-	return wget.run(url, method, params, header, false)
+func (wget *Request) Run(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
+	status, content, resp, err = wget.run(url, method, params, header, false)
+	return
+}
+
+func (wget *Request) PostJson(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
+	if method == "" {
+		method = http.MethodPost
+	}
+
+	if params == nil {
+		status, err = http.StatusBadRequest, fmt.Errorf("no params")
+		return
+	}
+
+	if j, e := json.Marshal(params); e != nil {
+		status, err = http.StatusBadRequest, e
+		return
+	} else {
+		if header == nil {
+			header = make(map[string]string, 1)
+		}
+		header["Content-Type"] = "application/json"
+		status, content, resp, err = wget.run(url, method, j, header, true)
+		return
+	}
+}
+
+func (wget *Request) GetUsingBodyParams(url string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
+	status, content, resp, err = wget.run(url, "GET", params, header, true)
+	return
 }
 
 func (wget *Request) run(url, method string, params interface{}, header map[string]string, withGetBody bool) (int, []byte, *http.Response, error) {
