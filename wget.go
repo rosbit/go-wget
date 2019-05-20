@@ -56,18 +56,15 @@ func newRequest(url string, connectTimeout int) *Request {
 }
 
 func Wget(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	status, content, resp, err = newRequest(url, 0).Run(url, method, params, header)
-	return
+	return newRequest(url, 0).Run(url, method, params, header)
 }
 
 func PostJson(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	status, content, resp, err = newRequest(url, 0).PostJson(url, method, params, header)
-	return
+	return newRequest(url, 0).PostJson(url, method, params, header)
 }
 
 func GetUsingBodyParams(url string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	status, content, resp, err = newRequest(url, 0).GetUsingBodyParams(url, params, header)
-	return
+	return newRequest(url, 0).GetUsingBodyParams(url, params, header)
 }
 
 func GetStatus(resp *http.Response) (int, string) {
@@ -117,8 +114,7 @@ func ModTime(rawurl string) (time.Time, error) {
 }
 
 func (wget *Request) Run(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	status, content, resp, err = wget.run(url, method, params, header, false)
-	return
+	return wget.run(url, method, params, header, false)
 }
 
 func (wget *Request) PostJson(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
@@ -139,14 +135,12 @@ func (wget *Request) PostJson(url, method string, params interface{}, header map
 			header = make(map[string]string, 1)
 		}
 		header["Content-Type"] = "application/json"
-		status, content, resp, err = wget.run(url, method, j, header, true)
-		return
+		return wget.run(url, method, j, header, true)
 	}
 }
 
 func (wget *Request) GetUsingBodyParams(url string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	status, content, resp, err = wget.run(url, "GET", params, header, true)
-	return
+	return wget.run(url, "GET", params, header, true)
 }
 
 func (wget *Request) run(url, method string, params interface{}, header map[string]string, withGetBody bool) (int, []byte, *http.Response, error) {
