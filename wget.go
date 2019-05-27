@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"os"
 	"crypto/tls"
+	"crypto/x509"
 )
 
 type Request struct {
@@ -45,6 +46,32 @@ func NewHttpsRequest(connectTimeout int) *Request {
 		},
 	}
 	return &Request{&http.Client{Transport: transport, Timeout: time.Duration(connectTimeout)*time.Second}}
+}
+
+func NewHttpsRequestWithCerts(connectTimeout int, pemFile, keyFile string) (*Request, error) {
+	if connectTimeout <= 0 {
+		connectTimeout = connect_timeout
+	}
+	cert, err := tls.LoadX509KeyPair(pemFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	certBytes, err := ioutil.ReadFile(pemFile)
+	if err != nil {
+		return nil, err
+	}
+	clientCertPool := x509.NewCertPool()
+	if !clientCertPool.AppendCertsFromPEM(certBytes) {
+		return nil, fmt.Errorf("Failed to AppendCertsFromPEM")
+	}
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:            clientCertPool,
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: true,
+		},
+	}
+	return &Request{&http.Client{Transport: transport, Timeout: time.Duration(connectTimeout)*time.Second}}, nil
 }
 
 func newRequest(url string, connectTimeout int) *Request {
