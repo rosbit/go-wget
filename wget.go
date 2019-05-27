@@ -48,15 +48,15 @@ func NewHttpsRequest(connectTimeout int) *Request {
 	return &Request{&http.Client{Transport: transport, Timeout: time.Duration(connectTimeout)*time.Second}}
 }
 
-func NewHttpsRequestWithCerts(connectTimeout int, pemFile, keyFile string) (*Request, error) {
+func NewHttpsRequestWithCerts(connectTimeout int, certPemFile, keyPemFile string) (*Request, error) {
 	if connectTimeout <= 0 {
 		connectTimeout = connect_timeout
 	}
-	cert, err := tls.LoadX509KeyPair(pemFile, keyFile)
+	cert, err := tls.LoadX509KeyPair(certPemFile, keyPemFile)
 	if err != nil {
 		return nil, err
 	}
-	certBytes, err := ioutil.ReadFile(pemFile)
+	certBytes, err := ioutil.ReadFile(certPemFile)
 	if err != nil {
 		return nil, err
 	}
