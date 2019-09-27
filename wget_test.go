@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"net/http"
+	"strings"
 )
 
 var (
@@ -49,4 +50,18 @@ func Test_Wget(t *testing.T) {
 func Test_PostJson(t *testing.T) {
 	json_test("http://httpbin.org/get",  http.MethodGet)
 	json_test("http://httpbin.org/post", http.MethodPost)
+}
+
+func Test_Reader(t *testing.T) {
+	print_result(PostJson("http://httpbin.org/post", http.MethodPost, strings.NewReader(`{"a":"b","c":"d"}`), headers))
+	fmt.Printf("------------ done for PostJson io.Reader with POST -------------\n")
+}
+
+func Test_httpBuildParmas(t *testing.T) {
+	s := strings.NewReader(`{"a":"b","c":"d"}`)
+	if _, err := buildHttpParams(s); err != nil {
+		fmt.Printf("----failed to buildHttpParams: %v\n", err)
+	} else {
+		fmt.Printf("----buildHttpParmas ok\n")
+	}
 }
