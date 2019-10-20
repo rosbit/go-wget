@@ -21,38 +21,38 @@ import (
 )
 
 type Request struct {
-	client *http.Client
+	client  *http.Client
+	options *Options
 }
 
-type HttpFunc func(string,string,interface{},map[string]string)(int,[]byte,*http.Response,error)
+type Options struct {
+	Timeout           int  // timeout in seconds to wait while connect/send/recv-ing
+	DontReadRespBody bool  // if it is true, it's your resposibility to get body from http.Response.Body
+}
+
+type HttpFunc func(string,string,interface{},map[string]string,...Options)(int,[]byte,*http.Response,error)
 
 const (
 	connect_timeout = 5    // default seconds to wait while trying to connect
 )
 
-func NewRequest(connectTimeout int) *Request {
-	if connectTimeout <= 0 {
-		connectTimeout = connect_timeout
-	}
-	return &Request{&http.Client{Timeout: time.Duration(connectTimeout)*time.Second}}
+func NewRequest(connectTimeout int, options ...Options) *Request {
+	timeout, option := getOptions(connectTimeout, options...)
+	return &Request{client: &http.Client{Timeout: time.Duration(timeout)*time.Second}, options: option}
 }
 
-func NewHttpsRequest(connectTimeout int) *Request {
-	if connectTimeout <= 0 {
-		connectTimeout = connect_timeout
-	}
+func NewHttpsRequest(connectTimeout int, options ...Options) *Request {
+	timeout, option := getOptions(connectTimeout, options...)
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
 	}
-	return &Request{&http.Client{Transport: transport, Timeout: time.Duration(connectTimeout)*time.Second}}
+	return &Request{client: &http.Client{Transport: transport, Timeout: time.Duration(timeout)*time.Second}, options: option}
 }
 
-func NewHttpsRequestWithCerts(connectTimeout int, certPemFile, keyPemFile string) (*Request, error) {
-	if connectTimeout <= 0 {
-		connectTimeout = connect_timeout
-	}
+func NewHttpsRequestWithCerts(connectTimeout int, certPemFile, keyPemFile string, options ...Options) (*Request, error) {
+	timeout, option := getOptions(connectTimeout, options...)
 	cert, err := tls.LoadX509KeyPair(certPemFile, keyPemFile)
 	if err != nil {
 		return nil, err
@@ -72,27 +72,45 @@ func NewHttpsRequestWithCerts(connectTimeout int, certPemFile, keyPemFile string
 			InsecureSkipVerify: true,
 		},
 	}
-	return &Request{&http.Client{Transport: transport, Timeout: time.Duration(connectTimeout)*time.Second}}, nil
+	return &Request{client: &http.Client{Transport: transport, Timeout: time.Duration(timeout)*time.Second}, options: option}, nil
 }
 
-func newRequest(url string, connectTimeout int) *Request {
+func getOptions(connectTimeout int, options ...Options) (int, *Options) {
+	var option *Options
+	if len(options) > 0 {
+		option = &options[0]
+		if option.Timeout <= 0 {
+			if connectTimeout < 0 {
+				connectTimeout = connect_timeout
+			}
+		} else {
+			connectTimeout = option.Timeout
+		}
+	} else if connectTimeout <= 0 {
+		connectTimeout = connect_timeout
+	}
+
+	return connectTimeout, option
+}
+
+func newRequest(url string, connectTimeout int, options ...Options) *Request {
 	if strings.Index(url, "https://") == 0 {
-		return NewHttpsRequest(connectTimeout)
+		return NewHttpsRequest(connectTimeout, options...)
 	} else {
-		return NewRequest(connectTimeout)
+		return NewRequest(connectTimeout, options...)
 	}
 }
 
-func Wget(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	return newRequest(url, 0).Run(url, method, params, header)
+func Wget(url, method string, params interface{}, header map[string]string, options ...Options) (status int, content []byte, resp *http.Response, err error) {
+	return newRequest(url, 0, options...).Run(url, method, params, header)
 }
 
-func PostJson(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	return newRequest(url, 0).PostJson(url, method, params, header)
+func PostJson(url, method string, params interface{}, header map[string]string, options ...Options) (status int, content []byte, resp *http.Response, err error) {
+	return newRequest(url, 0, options...).PostJson(url, method, params, header)
 }
 
-func GetUsingBodyParams(url string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	return newRequest(url, 0).GetUsingBodyParams(url, params, header)
+func GetUsingBodyParams(url string, params interface{}, header map[string]string, options ...Options) (status int, content []byte, resp *http.Response, err error) {
+	return newRequest(url, 0, options...).GetUsingBodyParams(url, params, header)
 }
 
 func GetStatus(resp *http.Response) (int, string) {
@@ -215,6 +233,11 @@ func (wget *Request) run(url, method string, params interface{}, header map[stri
 	if err != nil {
 		return http.StatusInternalServerError, nil, nil, err
 	}
+
+	if wget.options != nil && wget.options.DontReadRespBody {
+		return resp.StatusCode, nil, resp, nil
+	}
+
 	defer resp.Body.Close()
 
 	if body, err := ioutil.ReadAll(resp.Body); err != nil {

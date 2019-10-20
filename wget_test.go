@@ -5,6 +5,8 @@ import (
 	"testing"
 	"net/http"
 	"strings"
+	"io"
+	"os"
 )
 
 var (
@@ -25,7 +27,14 @@ func print_result(status int, content []byte, resp *http.Response, err error) {
 	}
 
 	fmt.Printf("status: %d\n", status)
-	fmt.Printf("reponse content: %s\n", string(content))
+	if content != nil {
+		fmt.Printf("response content: %s\n", string(content))
+	} else {
+		defer resp.Body.Close()
+		fmt.Printf("response from body: ")
+		io.Copy(os.Stdout, resp.Body)
+		fmt.Printf("\n")
+	}
 	respHeaders := GetHeaders(resp)
 	for k, v := range respHeaders {
 		fmt.Printf("%s: %s\n", k, v)
@@ -53,8 +62,23 @@ func Test_PostJson(t *testing.T) {
 }
 
 func Test_Reader(t *testing.T) {
-	print_result(PostJson("http://httpbin.org/post", http.MethodPost, strings.NewReader(`{"a":"b","c":"d"}`), headers))
+	r, w := io.Pipe()
+	go func() {
+		w.Write([]byte(`{"a":"b","c":"d"}`))
+		w.Close()
+	}()
+	print_result(PostJson("http://httpbin.org/post", http.MethodPost, r, headers))
 	fmt.Printf("------------ done for PostJson io.Reader with POST -------------\n")
+}
+
+func Test_DontReadBody(t *testing.T) {
+	r, w := io.Pipe()
+	go func() {
+		w.Write([]byte(`{"a":"b","c":"d"}`))
+		w.Close()
+	}()
+	print_result(PostJson("http://httpbin.org/post", http.MethodPost, r, headers, Options{DontReadRespBody:true}))
+	fmt.Printf("------------ done for PostJson io.Reader with POST (don't read response body)  -------------\n")
 }
 
 func Test_httpBuildParmas(t *testing.T) {
