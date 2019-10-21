@@ -292,10 +292,11 @@ func buildJsonParams(params interface{}) (io.Reader, error) {
 		return j, nil
 	}
 
-	b := &bytes.Buffer{}
-	enc := json.NewEncoder(b)
-	if err := enc.Encode(params); err != nil {
-		return nil, err
-	}
-	return b, nil
+	jr, jw := io.Pipe()
+	go func() {
+		enc := json.NewEncoder(jw)
+		enc.Encode(params)
+		jw.Close()
+	}()
+	return jr, nil
 }
