@@ -291,7 +291,12 @@ func buildJsonParams(params interface{}) (io.Reader, error) {
 	if j, ok := params.(io.Reader); ok {
 		return j, nil
 	}
-
+	if b, ok := params.([]byte); ok {
+		return bytes.NewReader(b), nil
+	}
+	b, _ := json.Marshal(params)
+	return bytes.NewReader(b), nil
+	/*
 	jr, jw := io.Pipe()
 	go func() {
 		enc := json.NewEncoder(jw)
@@ -302,4 +307,5 @@ func buildJsonParams(params interface{}) (io.Reader, error) {
 		}
 	}()
 	return jr, nil
+	*/
 }
