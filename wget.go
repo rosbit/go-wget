@@ -208,7 +208,13 @@ func (wget *Request) run(url, method string, params interface{}, header map[stri
 			if !withGetBody {
 				setForm = false
 				p, _ := ioutil.ReadAll(param)
-				url = fmt.Sprintf("%s?%s", url, string(p))
+				if len(p) > 0 {
+					deli := '?'
+					if strings.Contains(url, "?") {
+						deli = '&'
+					}
+					url = fmt.Sprintf("%s%c%s", url, deli, string(p))
+				}
 				params = nil
 			}
 			fallthrough
