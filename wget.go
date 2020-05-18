@@ -291,7 +291,7 @@ func buildHttpParams(params interface{}) (io.Reader, error) {
 
 func buildJsonParams(params interface{}) (io.Reader, error) {
 	if params == nil {
-		return nil, fmt.Errorf("no params to build json")
+		return strings.NewReader("null"), nil
 	}
 
 	if j, ok := params.(io.Reader); ok {
