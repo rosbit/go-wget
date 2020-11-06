@@ -300,18 +300,10 @@ func buildJsonParams(params interface{}) (io.Reader, error) {
 	if b, ok := params.([]byte); ok {
 		return bytes.NewReader(b), nil
 	}
-	b, _ := json.Marshal(params)
+	buf := &bytes.Buffer{}
+	jsonEncoder := json.NewEncoder(buf)
+	jsonEncoder.SetEscapeHTML(false)
+	jsonEncoder.Encode(params)
+	b := buf.Bytes()
 	return bytes.NewReader(b), nil
-	/*
-	jr, jw := io.Pipe()
-	go func() {
-		enc := json.NewEncoder(jw)
-		if err := enc.Encode(params); err != nil {
-			jw.CloseWithError(err)
-		} else {
-			jw.Close()
-		}
-	}()
-	return jr, nil
-	*/
 }
