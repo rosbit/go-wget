@@ -48,6 +48,28 @@ func main() {
 }
 ```
 
+### Usage as io/fs (go1.16 or above needed)
+```
+package main
+
+import (
+	"github.com/rosbit/go-wget"
+	"io"
+)
+
+func main() {
+	// GET
+	fp := wget.Get("http://httpbin.org/get")
+	defer fp.Close()
+	io.Copy(os.Stdout, fp)
+
+	// POST JSON
+	fp2 := Post("http://httpbin.org/post", &Args{Params: map[string]interface{}{"a": "b", "c": 1}, WithJson: true})
+	defer fp2.Close()
+	io.Copy(os.Stdout, fp2)
+}
+```
+
 ### Status
 
 The package is not fully tested, so be careful.

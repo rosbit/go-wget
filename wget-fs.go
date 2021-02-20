@@ -25,33 +25,33 @@ type Result struct {
 	Err error
 }
 
-func Get(url string, options ...*Args) (fs.File, error) {
+func Get(url string, options ...*Args) fs.File {
 	return wget_fs(url, http.MethodGet, options...)
 }
 
-func Post(url string, options ...*Args) (fs.File, error) {
+func Post(url string, options ...*Args) fs.File {
 	return wget_fs(url, http.MethodPost, options...)
 }
 
-func Put(url string, options ...*Args) (fs.File, error) {
+func Put(url string, options ...*Args) fs.File {
 	return wget_fs(url, http.MethodPut, options...)
 }
 
-func Delete(url string, options ...*Args) (fs.File, error) {
+func Delete(url string, options ...*Args) fs.File {
 	return wget_fs(url, http.MethodPut, options...)
 }
 
-func Head(url string, options ...*Args) (fs.File, error) {
+func Head(url string, options ...*Args) fs.File {
 	return wget_fs(url, http.MethodHead, options...)
 }
 
-func wget_fs(url string, method string, options ...*Args) (fs.File, error) {
+func wget_fs(url string, method string, options ...*Args) fs.File {
 	f := &File{
 		method: method,
 		url: url,
 	}
 	f.setOptions(options)
-	return f, nil
+	return f
 }
 
 /*
