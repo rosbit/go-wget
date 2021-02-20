@@ -49,7 +49,7 @@ func main() {
 ```
 
 ### Usage as io/fs (go1.16 or above needed)
-```
+```go
 package main
 
 import (
