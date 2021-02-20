@@ -10,8 +10,8 @@ This package is fully go-getable. So just type `go get github.com/rosbit/go-wget
 package main
 
 import (
-	"fmt"
 	"github.com/rosbit/go-wget"
+	"fmt"
 )
 
 func main() {
@@ -55,6 +55,7 @@ package main
 import (
 	"github.com/rosbit/go-wget"
 	"io"
+	"os"
 )
 
 func main() {
@@ -64,7 +65,7 @@ func main() {
 	io.Copy(os.Stdout, fp)
 
 	// POST JSON
-	fp2 := Post("http://httpbin.org/post", &Args{Params: map[string]interface{}{"a": "b", "c": 1}, WithJson: true})
+	fp2 := wget.Post("http://httpbin.org/post", &wget.Args{Params: map[string]interface{}{"a": "b", "c": 1}, WithJson: true})
 	defer fp2.Close()
 	io.Copy(os.Stdout, fp2)
 }
