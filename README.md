@@ -48,7 +48,7 @@ func main() {
 }
 ```
 
-### Usage as io/fs (go1.16 or above needed)
+### Usage as io/fs (go1.16 or above required)
 ```go
 package main
 
@@ -70,19 +70,17 @@ func main() {
 	defer fp2.Close()
 	io.Copy(os.Stdout, fp2)
 
-	// with Method
-	fp3 := wget.HttpRequest("http://httpbin.org/post", "POST", &wget.Args{Params: map[string]interface{}{"a": "b", "c": 1}, JsonCall: true})
-	defer fp3.Close()
-
-	// io.Copy(os.Stdout, fp3)
-	fi, err := fp3.Stat()
+	// with helper
+	status, body, err := wget.FsCall("http://httpbin.org/post", "POST", &wget.Args{Params: map[string]interface{}{"a": "b", "c": 1}, JsonCall: true})
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return
 	}
-	result := fi.Sys().(*wget.Result)
-	fmt.Printf("status: %d\n", result.Status)
-	io.Copy(os.Stdout, result.Resp.Body)
+	fmt.Printf("status: %d\n", status)
+	if body != nil {
+		defer body.Close()
+		io.Copy(os.Stdout, body)
+	}
 }
 ```
 
