@@ -15,7 +15,7 @@ type Args struct {
 	Params interface{}
 	Headers map[string]string
 	Timeout int
-	WithJson bool
+	JsonCall bool
 }
 
 // result of HTTP response, returned by FileInfo.Sys()
@@ -23,6 +23,10 @@ type Result struct {
 	Status int
 	Resp *http.Response
 	Err error
+}
+
+func HttpRequest(url string, method string, options ...*Args) fs.File {
+	return wget_fs(url, method, options...)
 }
 
 func Get(url string, options ...*Args) fs.File {
@@ -71,7 +75,7 @@ func (wfs *wfs_t) Open(name string) (fs.File, error) {
 type File struct {
 	method string
 	url string
-	withJson bool
+	jsonCall bool
 	params interface{}
 	headers map[string]string
 	timeout int
@@ -118,7 +122,7 @@ func (f *File) setOptions(options []*Args) {
 	f.params = option.Params
 	f.headers = option.Headers
 	f.timeout = option.Timeout
-	f.withJson = option.WithJson
+	f.jsonCall = option.JsonCall
 }
 
 func (f *File) run() {
@@ -127,7 +131,7 @@ func (f *File) run() {
 	}
 
 	var call HttpFunc
-	if f.withJson {
+	if f.jsonCall {
 		call = PostJson
 	} else {
 		call = Wget

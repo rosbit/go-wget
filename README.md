@@ -56,6 +56,7 @@ import (
 	"github.com/rosbit/go-wget"
 	"io"
 	"os"
+	"fmt"
 )
 
 func main() {
@@ -65,9 +66,23 @@ func main() {
 	io.Copy(os.Stdout, fp)
 
 	// POST JSON
-	fp2 := wget.Post("http://httpbin.org/post", &wget.Args{Params: map[string]interface{}{"a": "b", "c": 1}, WithJson: true})
+	fp2 := wget.Post("http://httpbin.org/post", &wget.Args{Params: map[string]interface{}{"a": "b", "c": 1}, JsonCall: true})
 	defer fp2.Close()
 	io.Copy(os.Stdout, fp2)
+
+	// with Method
+	fp3 := wget.HttpRequest("http://httpbin.org/post", "POST", &wget.Args{Params: map[string]interface{}{"a": "b", "c": 1}, JsonCall: true})
+	defer fp3.Close()
+
+	// io.Copy(os.Stdout, fp3)
+	fi, err := fp3.Stat()
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	result := fi.Sys().(*wget.Result)
+	fmt.Printf("status: %d\n", result.Status)
+	io.Copy(os.Stdout, result.Resp.Body)
 }
 ```
 
