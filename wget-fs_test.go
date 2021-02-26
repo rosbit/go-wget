@@ -26,3 +26,15 @@ func fs_output(fp *File) {
 	defer fp.Close()
 	io.Copy(os.Stdout, fp)
 }
+
+func TestFSParseJSON(t *testing.T) {
+	var res map[string]interface{}
+	status, err := FsCallAndParseJSON("http://httpbin.org/post", "POST", &res, &Args{Params: map[string]interface{}{"a": "b", "c": 1}, JsonCall: true, Logger: os.Stderr})
+	if err != nil {
+		fmt.Printf("failed to call FsCallAndParseJSON: %v\n", err)
+		return
+	}
+	fmt.Printf("status: %d, res: %#v\n", status, res)
+	fmt.Printf("\n---- done to TestFSParseJSON() ---\n\n")
+}
+

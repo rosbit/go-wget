@@ -4,6 +4,7 @@ package wget
 
 import (
 	// "io/fs"
+	"io"
 	"os"
 	"time"
 	"path"
@@ -17,6 +18,7 @@ type Args struct {
 	Headers map[string]string
 	Timeout int
 	JsonCall bool
+	Logger io.Writer
 }
 
 // result of HTTP response, returned by FileInfo.Sys()

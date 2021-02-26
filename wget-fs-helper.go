@@ -27,6 +27,14 @@ func FsCallAndParseJSON(url string, method string, res interface{}, options ...*
 	}
 	defer body.Close()
 
-	err = json.NewDecoder(body).Decode(res)
-	return
+	if len(options) == 0 || options[0] == nil || options[0].Logger == nil {
+		err = json.NewDecoder(body).Decode(res)
+		return
+	}
+
+	w := options[0].Logger
+	io.WriteString(w, "body: ")
+	r := io.TeeReader(body, w)
+	defer io.WriteString(w, "\n")
+	return status, json.NewDecoder(r).Decode(res)
 }
