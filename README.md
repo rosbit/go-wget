@@ -48,7 +48,7 @@ func main() {
 }
 ```
 
-### Usage as io/fs (go1.16 or above required)
+### Usage as fs
 ```go
 package main
 

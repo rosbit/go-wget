@@ -1,4 +1,4 @@
-// +build go1.16
+// remove go1.16 dependency, build go1.16
 
 package wget
 

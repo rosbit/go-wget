@@ -2,6 +2,8 @@ package wget
 
 import (
 	"encoding/json"
+	// "io"
+	// "os"
 )
 
 type FnCallJ func(url string, method string, params interface{}, headers map[string]string, res interface{}) (status int, err error)
@@ -22,4 +24,12 @@ func callWgetJ(url string, method string, postData interface{}, headers map[stri
 	defer resp.Body.Close()
 
 	return status, json.NewDecoder(resp.Body).Decode(res)
+
+	/*
+	io.WriteString(os.Stdout, "body: ")
+	r := io.TeeReader(resp.Body, os.Stdout)
+	defer io.WriteString(os.Stdout, "\n")
+
+	return status, json.NewDecoder(r).Decode(res)
+	*/
 }

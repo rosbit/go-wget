@@ -1,9 +1,10 @@
-// +build go1.16
+// remove go1.16 dependency build go1.16
 
 package wget
 
 import (
-	"io/fs"
+	// "io/fs"
+	"os"
 	"time"
 	"path"
 	"net/url"
@@ -25,31 +26,31 @@ type Result struct {
 	Err error
 }
 
-func HttpRequest(url string, method string, options ...*Args) fs.File {
+func HttpRequest(url string, method string, options ...*Args) *File /*fs.File*/ {
 	return wget_fs(url, method, options...)
 }
 
-func Get(url string, options ...*Args) fs.File {
+func Get(url string, options ...*Args) *File /*fs.File*/ {
 	return wget_fs(url, http.MethodGet, options...)
 }
 
-func Post(url string, options ...*Args) fs.File {
+func Post(url string, options ...*Args) *File /*fs.File*/ {
 	return wget_fs(url, http.MethodPost, options...)
 }
 
-func Put(url string, options ...*Args) fs.File {
+func Put(url string, options ...*Args) *File /*fs.File*/ {
 	return wget_fs(url, http.MethodPut, options...)
 }
 
-func Delete(url string, options ...*Args) fs.File {
+func Delete(url string, options ...*Args) *File /*fs.File*/ {
 	return wget_fs(url, http.MethodPut, options...)
 }
 
-func Head(url string, options ...*Args) fs.File {
+func Head(url string, options ...*Args) *File /*fs.File*/ {
 	return wget_fs(url, http.MethodHead, options...)
 }
 
-func wget_fs(url string, method string, options ...*Args) fs.File {
+func wget_fs(url string, method string, options ...*Args) *File /*fs.File*/ {
 	f := &File{
 		method: method,
 		url: url,
@@ -83,7 +84,7 @@ type File struct {
 	Result
 }
 
-func (f *File) Stat() (fs.FileInfo, error) {
+func (f *File) Stat() (*FileInfo /*fs.FileInfo*/, error) {
 	f.run()
 	if f.Err != nil {
 		return nil, f.Err
@@ -97,7 +98,7 @@ func (f *File) Read(p []byte) (int, error) {
 		return 0, f.Err
 	}
 	if f.Resp.Body == nil {
-		return 0, fs.ErrNotExist
+		return 0, os.ErrNotExist /*fs.ErrNotExist*/
 	}
 	return f.Resp.Body.Read(p)
 }
@@ -108,7 +109,7 @@ func (f *File) Close() error {
 		return f.Err
 	}
 	if f.Resp.Body == nil {
-		return fs.ErrNotExist
+		return os.ErrNotExist /*fs.ErrNotExist*/
 	}
 	return f.Resp.Body.Close()
 }
@@ -164,9 +165,10 @@ func (fi *FileInfo) Size() int64 {
 }
 
 // file mode bits
+/*
 func (fi *FileInfo) Mode() fs.FileMode {
 	return fs.ModeSocket
-}
+}*/
 
 // modification time
 func (fi *FileInfo) ModTime() time.Time {

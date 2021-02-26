@@ -1,4 +1,4 @@
-// +build go1.16
+// remove go1.16 dependency, build go1.16
 
 package wget
 
@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 	"fmt"
-	"io/fs"
+	// "io/fs"
 )
 
 func TestFSGet(t *testing.T) {
@@ -17,12 +17,12 @@ func TestFSGet(t *testing.T) {
 }
 
 func TestFSJson(t *testing.T) {
-	fp := Post("http://httpbin.org/post", &Args{Params: map[string]interface{}{"a": "b", "c": 1}, WithJson: true})
+	fp := Post("http://httpbin.org/post", &Args{Params: map[string]interface{}{"a": "b", "c": 1}, JsonCall: true})
 	fs_output(fp)
 	fmt.Printf("\n---- done to TestFSJson() ---\n\n")
 }
 
-func fs_output(fp fs.File) {
+func fs_output(fp *File) {
 	defer fp.Close()
 	io.Copy(os.Stdout, fp)
 }
