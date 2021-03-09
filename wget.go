@@ -28,6 +28,7 @@ type Request struct {
 type Options struct {
 	Timeout           int  // timeout in seconds to wait while connect/send/recv-ing
 	DontReadRespBody bool  // if it is true, it's your resposibility to get body from http.Response.Body
+	DebugWriter io.Writer
 }
 
 type HttpFunc func(string,string,interface{},map[string]string,...Options)(int,[]byte,*http.Response,error)
