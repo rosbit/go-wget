@@ -61,6 +61,18 @@ func Test_PostJson(t *testing.T) {
 	json_test("http://httpbin.org/post", http.MethodPost)
 }
 
+func Test_MultiBase(t *testing.T) {
+	multiBase, err := NewBaseUrl(BaseItem("http://192.168.0.241:8088"), BaseItem("http://httpbin.org"))
+	if err != nil {
+		t.Fatalf("%v\n", err)
+	}
+	print_result(multiBase.HttpCall("/get", http.MethodGet, params, headers))
+	print_result(multiBase.HttpCall("/post", http.MethodPost, params, headers))
+	print_result(multiBase.JsonCall("/post", http.MethodPost, params, headers))
+	print_result(PostJson("/post", http.MethodPost, params, headers, Options{MultiBase:multiBase}))
+	fmt.Printf("------------ done for BaseUrl::HttpCall -------------\n")
+}
+
 func Test_Reader(t *testing.T) {
 	r, w := io.Pipe()
 	go func() {
@@ -89,3 +101,4 @@ func Test_httpBuildParmas(t *testing.T) {
 		fmt.Printf("----buildHttpParmas ok\n")
 	}
 }
+

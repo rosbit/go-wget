@@ -9,11 +9,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"bytes"
-	"net/url"
 	"io/ioutil"
 	"time"
-	"encoding/json"
 	"os"
 	"io"
 	"crypto/tls"
@@ -29,6 +26,7 @@ type Options struct {
 	Timeout           int  // timeout in seconds to wait while connect/send/recv-ing
 	DontReadRespBody bool  // if it is true, it's your resposibility to get body from http.Response.Body
 	DebugWriter io.Writer
+	MultiBase  *BaseUrl
 }
 
 type HttpFunc func(string,string,interface{},map[string]string,...Options)(int,[]byte,*http.Response,error)
@@ -103,14 +101,23 @@ func newRequest(url string, connectTimeout int, options ...Options) *Request {
 }
 
 func Wget(url, method string, params interface{}, header map[string]string, options ...Options) (status int, content []byte, resp *http.Response, err error) {
+	if !isHttpUrl(url) && len(options) > 0 && options[0].MultiBase != nil {
+		return options[0].MultiBase.HttpCall(url, method, params, header, options...)
+	}
 	return newRequest(url, 0, options...).Run(url, method, params, header)
 }
 
 func PostJson(url, method string, params interface{}, header map[string]string, options ...Options) (status int, content []byte, resp *http.Response, err error) {
+	if !isHttpUrl(url) && len(options) > 0 && options[0].MultiBase != nil {
+		return options[0].MultiBase.JsonCall(url, method, params, header, options...)
+	}
 	return newRequest(url, 0, options...).PostJson(url, method, params, header)
 }
 
 func GetUsingBodyParams(url string, params interface{}, header map[string]string, options ...Options) (status int, content []byte, resp *http.Response, err error) {
+	if !isHttpUrl(url) && len(options) > 0 && options[0].MultiBase != nil {
+		return options[0].MultiBase.GetWithBody(url, params, header, options...)
+	}
 	return newRequest(url, 0, options...).GetUsingBodyParams(url, params, header)
 }
 
@@ -161,76 +168,42 @@ func ModTime(rawurl string) (time.Time, error) {
 }
 
 func (wget *Request) Run(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	return wget.run(url, method, params, header, false)
+	var paramsReader io.ReadSeeker
+	if url, method, paramsReader, header, err = adjustHttpArgs(url, method, params, header); err != nil {
+		return
+	}
+	return wget.run(url, method, paramsReader, header)
 }
 
 func (wget *Request) PostJson(url, method string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	if method == "" {
-		method = http.MethodPost
-	}
-
-	j, e := buildJsonParams(params)
-	if e != nil {
-		status, err = http.StatusBadRequest, e
+	var paramsReader io.ReadSeeker
+	if method, paramsReader, header, err = adjustJsonArgs(method, params, header); err != nil {
 		return
 	}
-
-	if header == nil {
-		header = make(map[string]string, 1)
-	}
-	header["Content-Type"] = "application/json"
-	return wget.run(url, method, j, header, true)
+	return wget.run(url, method, paramsReader, header)
 }
 
 func (wget *Request) GetUsingBodyParams(url string, params interface{}, header map[string]string) (status int, content []byte, resp *http.Response, err error) {
-	return wget.run(url, "GET", params, header, true)
+	var paramsReader io.ReadSeeker
+	if _, _, paramsReader, header, err = adjustHttpArgs(url, http.MethodPost, params, header); err != nil {
+		return
+	}
+	return wget.run(url, http.MethodGet, paramsReader, header)
 }
 
-func (wget *Request) run(url, method string, params interface{}, header map[string]string, withGetBody bool) (int, []byte, *http.Response, error) {
+func (wget *Request) run(url, method string, params io.Reader, header map[string]string) (int, []byte, *http.Response, error) {
 	var req *http.Request
-	param, err := buildHttpParams(params)
-	if err != nil {
-		return http.StatusBadRequest, nil, nil, err
-	}
-
-	if method == "" {
-		method = http.MethodGet
-	} else {
-		method = strings.ToUpper(method)
-	}
-	if param == nil {
-		if req, err = http.NewRequest(method, url, nil); err != nil {
+	var err error
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch:
+		if req, err = http.NewRequest(method, url, params); err != nil {
 			return http.StatusBadRequest, nil, nil, err
 		}
-	} else {
-		setForm := true
-		switch method {
-		case http.MethodGet, http.MethodHead:
-			if !withGetBody {
-				setForm = false
-				p, _ := ioutil.ReadAll(param)
-				if len(p) > 0 {
-					deli := '?'
-					if strings.Contains(url, "?") {
-						deli = '&'
-					}
-					url = fmt.Sprintf("%s%c%s", url, deli, string(p))
-				}
-				params = nil
-			}
-			fallthrough
-		case http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch:
-			if req, err = http.NewRequest(method, url, param); err != nil {
-				return http.StatusBadRequest, nil, nil, err
-			}
-			if setForm {
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			}
-		default:
-			return http.StatusMethodNotAllowed, nil, nil, fmt.Errorf("method %s not supported", method)
-		}
+	default:
+		return http.StatusMethodNotAllowed, nil, nil, fmt.Errorf("method %s not supported", method)
 	}
-	if header != nil {
+
+	if len(header) > 0 {
 		for k, v := range header {
 			req.Header.Set(k, v)
 		}
@@ -252,59 +225,4 @@ func (wget *Request) run(url, method string, params interface{}, header map[stri
 	} else {
 		return resp.StatusCode, body, resp, nil
 	}
-}
-
-func buildHttpParams(params interface{}) (io.Reader, error) {
-	if params == nil {
-		return nil, nil
-	}
-	if r, ok := params.(io.Reader); ok {
-		return r, nil
-	}
-	switch params.(type) {
-	case []byte:
-		return bytes.NewReader(params.([]byte)), nil
-	case string:
-		return strings.NewReader(params.(string)), nil
-	case map[string]interface{}:
-		m,_ := params.(map[string]interface{})
-		u := url.Values{}
-		for k, v := range m {
-			u.Set(k, fmt.Sprintf("%v", v))
-		}
-		return strings.NewReader(u.Encode()), nil
-	case map[string]string:
-		m,_ := params.(map[string]string)
-		u := url.Values{}
-		for k, v := range m {
-			u.Set(k, v)
-		}
-		return strings.NewReader(u.Encode()), nil
-	case int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64,
-		float32, float64,
-		bool:
-		return strings.NewReader(fmt.Sprintf("%v", params)), nil
-	default:
-		return nil, fmt.Errorf("unknown type to build http params")
-	}
-}
-
-func buildJsonParams(params interface{}) (io.Reader, error) {
-	if params == nil {
-		return strings.NewReader("null"), nil
-	}
-
-	if j, ok := params.(io.Reader); ok {
-		return j, nil
-	}
-	if b, ok := params.([]byte); ok {
-		return bytes.NewReader(b), nil
-	}
-	buf := &bytes.Buffer{}
-	jsonEncoder := json.NewEncoder(buf)
-	jsonEncoder.SetEscapeHTML(false)
-	jsonEncoder.Encode(params)
-	b := buf.Bytes()
-	return bytes.NewReader(b), nil
 }

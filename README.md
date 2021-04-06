@@ -84,6 +84,17 @@ func main() {
 }
 ```
 
+### Usage with multi-baseurl
+```go
+    multiBase, err := NewBaseUrl(BaseItem("http://192.168.0.241:8088"), BaseItem("http://httpbin.org"))
+    if err != nil {
+         // err
+    }
+    status, body, _, err := multiBase.HttpCall("/post", http.MethodPost, params, headers)
+    multiBase.JsonCall("/post", http.MethodPost, params, headers)
+    PostJson("/post", http.MethodPost, params, headers, Options{MultiBase:multiBase})
+```
+
 ### Status
 
 The package is not fully tested, so be careful.
