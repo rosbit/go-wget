@@ -2,6 +2,8 @@
 
 go-wget is a http client package to make use of Go built-in net/http
 
+This library is replaced by [https://github.com/rosbit/gnet](rosbit/gnet).
+
 ### Usage
 
 This package is fully go-getable. So just type `go get github.com/rosbit/go-wget` to install.
